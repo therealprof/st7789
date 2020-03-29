@@ -8,15 +8,14 @@ use embedded_graphics::primitives::Rectangle;
 use embedded_graphics::style::{PrimitiveStyle, Styled};
 
 use embedded_hal::blocking::delay::DelayUs;
-use embedded_hal::blocking::spi;
 use embedded_hal::digital::v2::OutputPin;
 
 use crate::{Error, ST7789};
+use display_interface::WriteOnlyDataCommand;
 
-impl<SPI, DC, RST, DELAY> ST7789<SPI, DC, RST, DELAY>
+impl<DI, RST, DELAY> ST7789<DI, RST, DELAY>
 where
-    SPI: spi::Write<u8>,
-    DC: OutputPin,
+    DI: WriteOnlyDataCommand<u8>,
     RST: OutputPin,
     DELAY: DelayUs<u32>,
 {
@@ -24,7 +23,7 @@ where
         &mut self,
         item: &dyn Dimensions,
         colors: &mut dyn Iterator<Item = u16>,
-    ) -> Result<(), Error<SPI::Error, DC::Error, RST::Error>> {
+    ) -> Result<(), Error<RST::Error>> {
         let sx = item.top_left().x as u16;
         let sy = item.top_left().y as u16;
         let ex = item.bottom_right().x as u16;
@@ -34,14 +33,13 @@ where
     }
 }
 
-impl<SPI, DC, RST, DELAY> DrawTarget<Rgb565> for ST7789<SPI, DC, RST, DELAY>
+impl<DI, RST, DELAY> DrawTarget<Rgb565> for ST7789<DI, RST, DELAY>
 where
-    SPI: spi::Write<u8>,
-    DC: OutputPin,
+    DI: WriteOnlyDataCommand<u8>,
     RST: OutputPin,
     DELAY: DelayUs<u32>,
 {
-    type Error = Error<SPI::Error, DC::Error, RST::Error>;
+    type Error = Error<RST::Error>;
 
     fn draw_pixel(&mut self, pixel: Pixel<Rgb565>) -> Result<(), Self::Error> {
         let color = RawU16::from(pixel.1).into_inner();

@@ -2,41 +2,31 @@
 //! Batch the pixels to be rendered into Pixel Rows and Pixel Blocks (contiguous Pixel Rows).
 //! This enables the pixels to be rendered efficiently as Pixel Blocks, which may be transmitted in a single Non-Blocking SPI request.
 use crate::{Error, ST7789};
+use display_interface::WriteOnlyDataCommand;
 use embedded_graphics::{
     pixelcolor::{raw::RawU16, Rgb565},
     prelude::*,
 };
-use embedded_hal::{
-    blocking::{delay::DelayUs, spi},
-    digital::v2::OutputPin,
-};
+use embedded_hal::{blocking::delay::DelayUs, digital::v2::OutputPin};
 
-pub trait DrawBatch<SPI, DC, RST, DELAY, T>
+pub trait DrawBatch<DI, RST, DELAY, T>
 where
-    SPI: spi::Write<u8>,
-    DC: OutputPin,
+    DI: WriteOnlyDataCommand<u8>,
     RST: OutputPin,
     DELAY: DelayUs<u32>,
     T: IntoIterator<Item = Pixel<Rgb565>>,
 {
-    fn draw_batch(
-        &mut self,
-        item_pixels: T,
-    ) -> Result<(), Error<SPI::Error, DC::Error, RST::Error>>;
+    fn draw_batch(&mut self, item_pixels: T) -> Result<(), Error<RST::Error>>;
 }
 
-impl<SPI, DC, RST, DELAY, T> DrawBatch<SPI, DC, RST, DELAY, T> for ST7789<SPI, DC, RST, DELAY>
+impl<DI, RST, DELAY, T> DrawBatch<DI, RST, DELAY, T> for ST7789<DI, RST, DELAY>
 where
-    SPI: spi::Write<u8>,
-    DC: OutputPin,
+    DI: WriteOnlyDataCommand<u8>,
     RST: OutputPin,
     DELAY: DelayUs<u32>,
     T: IntoIterator<Item = Pixel<Rgb565>>,
 {
-    fn draw_batch(
-        &mut self,
-        item_pixels: T,
-    ) -> Result<(), Error<SPI::Error, DC::Error, RST::Error>> {
+    fn draw_batch(&mut self, item_pixels: T) -> Result<(), Error<RST::Error>> {
         //  Get the pixels for the item to be rendered.
         let pixels = item_pixels.into_iter();
         //  Batch the pixels into Pixel Rows.
